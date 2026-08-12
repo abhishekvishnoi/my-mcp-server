@@ -1,0 +1,71 @@
+package com.openshift.mcp.tools;
+
+import com.example.mcp.entity.Product;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.openshift.api.model.ProjectList;
+import io.fabric8.openshift.client.OpenShiftClient;
+import io.quarkiverse.mcp.server.Tool;
+import io.quarkiverse.mcp.server.ToolArg;
+import jakarta.inject.Inject;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class OpenshiftTools {
+
+    @Inject
+    OpenShiftClient openShiftClient;
+
+    @Tool(description = "Get all the pods in a project.")
+    String getPodsInProjects(@ToolArg(description = "The name of the project in the openShift cluster " +
+            " (e.g. kafka , openshift-pipelines)") String projectName) {
+
+
+        String ns = openShiftClient.config().getNamespace();
+
+        //ProjectList nslist =openShiftClient.projects().list();
+
+        PodList podList = openShiftClient.pods().inNamespace(projectName).list();
+
+        String podnames = podList.getItems().stream().map(p -> p.getMetadata().getName()).collect(Collectors.joining(", "));
+
+        return podnames;
+
+    }
+
+
+    @Tool(description = "Create an new pod in a project.")
+    String createPodInProject(@ToolArg(description = "The name of the project in the openShift cluster " +
+            " (e.g. kafka , openshift-pipelines)") String projectName ,
+                              @ToolArg(description = "The name of the pod to be created") String podName ,
+                              @ToolArg(description = "The name of the image to be used for the pod") String imageName ) {
+
+
+
+        Pod pod = new PodBuilder()
+                .withNewMetadata()
+                .withName(podName)
+                .endMetadata()
+                .withNewSpec()
+                .addNewContainer()
+                .withName(podName)
+                .withImage(imageName)
+                .endContainer()
+                .withRestartPolicy("Never") // optional; useful for one-off pods
+                .endSpec()
+                .build();
+
+        Pod created = openShiftClient.pods()
+                .inNamespace(projectName)
+                .resource(pod)
+                .create();
+
+        return "Created pod: " + created.getMetadata().getName()
+                + " in project: " + projectName
+                + " with image: " + imageName;
+
+    }
+
+}

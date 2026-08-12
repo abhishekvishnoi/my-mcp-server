@@ -1,0 +1,30 @@
+package com.example.mcp.tools;
+
+import com.example.mcp.entity.Product;
+import io.quarkiverse.mcp.server.Tool;
+import io.quarkiverse.mcp.server.ToolArg;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class ProductTools {
+
+    @Tool(description = "Get all the products in the inventory.")
+    String getProducts() {
+
+       List<Product> products = Product.listAll();
+        return products.stream()
+                .map(p -> p.name)
+                .collect(Collectors.joining(", "));
+
+    }
+
+    @Tool(description = "Get the details of a product from the inventory.")
+    Product getProductByName(@ToolArg(description = "The name of the product (e.g. phone, laptop)") String name) {
+
+        List<Product> products = Product.find("name = ?1", name).list();
+        return products.get(0);
+        //return product;
+
+    }
+}
